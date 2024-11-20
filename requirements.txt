@@ -8,4 +8,4 @@ torchaudio --index-url https://download.pytorch.org/whl/cu118
 transformers
 gmft
 pypdfium2
-
+streamlit_pdf_viewer

@@ -159,10 +159,10 @@ def premium_interface():
                 # st.text_area("Extracted Text:", extracted_text, height=300)
 
             # Input for column names and exactly 3 rows
-            st.write("Enter column names and rows (2 rows are atleast mandatory) for the model to understand the schema:")
+            st.write("Enter column names and rows (2 rows are at least mandatory) for the model to understand the schema:")
             column_names = st.text_input('Enter column names (Eg: "Student Name","Course Title","Instructor":')
             rows = []
-            for i in range(3):
+            for i in range(4):
                 if i < 2:
                     prompt = f'Enter mandatory row {i + 1} (e.g., "John Doe","Introduction to Computer Science","Dr. Emily Carter"):'
                 else:
@@ -180,8 +180,9 @@ def premium_interface():
 
                     # Prompt for API
                     prompt = f"""
-                    Please extract the table(s) as csv from this PDF. Ensure that each field is transcribed word-for-word exactly as it appears in the document without adding or modifying any information. Keep the original order of rows and columns and include every row on the first page. Please ensure that all values, even blank cells, match the original document exactly. Please do not miss any rows in the first page of the document.
-                    Do not include 'Certainly! Below is the extracted data from the first page of the PDF'. Answer should be directly readable as csv.
+                    Please extract the table(s) as csv from this PDF. Ensure that each field is transcribed word-for-word exactly as it appears in the document without adding or modifying any information. Keep the original order of rows and columns and include every row on each page. 
+                    Please ensure that all values, even blank cells, match the original document exactly. Please do not miss any rows in each page of the document.
+                    Do not include 'Certainly! Below is the extracted data from different pages in the pdf'. Answer should be directly readable as csv.
                     Text:
                     {extracted_text}
                     """
@@ -279,7 +280,7 @@ def main_interface():
 
                 if output["response"] == "Yes":
                     # Extract all tables and display
-                    st.write("Tables look valid. Extracting all tables...")
+                    st.write("Tables look valid. Extracting all tables... (If the tables don't look fine, try the premium version)")
                     all_tables, doc = ingest_pdf("temp.pdf")
                     for i, table in enumerate(all_tables):
                         ft = formatter.extract(table)
@@ -310,18 +311,18 @@ def main_interface():
                         # Write the table to Streamlit
                         st.write(f"Table {i + 1}")
                         st.dataframe(table_data)
-                        csv_file = "extracted_table.csv"
-                        table_data.to_csv(csv_file, index=False)
-
-                        # Provide download button
-                        with open(csv_file, "rb") as f:
-                            st.download_button(
-                                label="Download CSV",
-                                data=f,
-                                file_name="extracted_table.csv",
-                                mime="text/csv",
-                                key=f"{i}"
-                            )
+                        # csv_file = "extracted_table.csv"
+                        # table_data.to_csv(csv_file, index=False)
+                        #
+                        # # Provide download button
+                        # with open(csv_file, "rb") as f:
+                        #     st.download_button(
+                        #         label="Download CSV",
+                        #         data=f,
+                        #         file_name="extracted_table.csv",
+                        #         mime="text/csv",
+                        #         key=f"{i}"
+                        #     )
                 else:
                     st.warning("The PDF is complicated. Use the premium version.")
             else:

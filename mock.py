@@ -246,69 +246,84 @@ def main_interface():
         tables, doc = ingest_pdf_first_page("temp.pdf")
         if tables:
             ft = formatter.extract(tables[0])
-            csv_data = ft.df(config_overrides=config_hdr)  # Customize config as needed
-            # print(csv_data)
+            success = False
+            # csv_data = ft.df(config_overrides=config_hdr)
+            try:
+                # Attempt to execute the function
+                csv_data = ft.df(config_overrides=config_hdr)
+                success = True
+            except ValueError as ve:
+                # Handle ValueError specifically
+                print(f"ValueError encountered: {ve}")
+            except Exception as e:
+                # Handle any other unexpected exceptions
+                print(f"An error occurred: {e}")
 
-            if csv_data.columns.duplicated().any():
-                csv_data.columns = [f"Column_{i}" for i in range(csv_data.shape[1])]
+            if success:
+                if csv_data.columns.duplicated().any():
+                    csv_data.columns = [f"Column_{i}" for i in range(csv_data.shape[1])]
 
-            rows_to_send = csv_data.head(2).to_dict(orient="records")
-            prompt = f"""
-            The following data was extracted from a PDF file:
+                rows_to_send = csv_data.head(2).to_dict(orient="records")
+                prompt = f"""
+                The following data was extracted from a PDF file:
+                
+                First Two Rows:
+                {rows_to_send}
+                
+                Analyze the structure and content of the data. Does it appear to be well-structured and properly extracted? Just respond with Yes/No
+                """
+                if len(csv_data) > 8:
+                    output = is_table_valid(prompt)
+                else:
+                    output = {'response': 'Yes'}
 
-            First Two Rows:
-            {rows_to_send}
+                if output["response"] == "Yes":
+                    # Extract all tables and display
+                    st.write("Tables look valid. Extracting all tables...")
+                    all_tables, doc = ingest_pdf("temp.pdf")
+                    for i, table in enumerate(all_tables):
+                        ft = formatter.extract(table)
+                        table_data = ft.df(config_overrides=config_hdr)  # Customize config as needed
 
-            Does this data look properly extracted and structured? Data can have hierarchical header
-            Just respond with Yes/No
-            """
-            output = is_table_valid(prompt)
+                        # Remove columns where all values are None or NaN
+                        table_data = table_data.dropna(axis=1, how="all")
 
-            if output["response"] == "Yes":
-                # Extract all tables and display
-                st.write("Tables look valid. Extracting all tables...")
-                all_tables, doc = ingest_pdf("temp.pdf")
-                for i, table in enumerate(all_tables):
-                    ft = formatter.extract(table)
-                    table_data = ft.df(config_overrides=config_hdr)  # Customize config as needed
+                        # Handle duplicate column names
+                        if table_data.columns.duplicated().any():
+                            table_data.columns = [
+                                f"{col}_{idx}" if dup else col
+                                for idx, (col, dup) in
+                                enumerate(zip(table_data.columns, table_data.columns.duplicated(keep=False)))
+                            ]
 
-                    # Remove columns where all values are None or NaN
-                    table_data = table_data.dropna(axis=1, how="all")
+                        # def clean_text(text):
+                        #     if isinstance(text, str):
+                        #         # Remove double quotes
+                        #         # text = text.replace('"', '')
+                        #         # Remove escape sequences by encoding and decoding
+                        #         text = text.replace('\n', ' ').replace('\t', ' ')
+                        #     return text
 
-                    # Handle duplicate column names
-                    if table_data.columns.duplicated().any():
-                        table_data.columns = [
-                            f"{col}_{idx}" if dup else col
-                            for idx, (col, dup) in
-                            enumerate(zip(table_data.columns, table_data.columns.duplicated(keep=False)))
-                        ]
+                        # Apply the function to the entire DataFrame
+                        table_data = table_data.apply(lambda col: col.map(clean_text))
 
-                    # def clean_text(text):
-                    #     if isinstance(text, str):
-                    #         # Remove double quotes
-                    #         # text = text.replace('"', '')
-                    #         # Remove escape sequences by encoding and decoding
-                    #         text = text.replace('\n', ' ').replace('\t', ' ')
-                    #     return text
+                        # Write the table to Streamlit
+                        st.write(f"Table {i + 1}")
+                        st.dataframe(table_data)
+                        csv_file = "extracted_table.csv"
+                        table_data.to_csv(csv_file, index=False)
 
-                    # Apply the function to the entire DataFrame
-                    table_data = table_data.apply(lambda col: col.map(clean_text))
-
-                    # Write the table to Streamlit
-                    st.write(f"Table {i + 1}")
-                    st.dataframe(table_data)
-                    csv_file = "extracted_table.csv"
-                    table_data.to_csv(csv_file, index=False)
-
-                    # Provide download button
-                    with open(csv_file, "rb") as f:
-                        st.download_button(
-                            label="Download CSV",
-                            data=f,
-                            file_name="extracted_table.csv",
-                            mime="text/csv",
-                            key=f"{i}"
-                        )
+                        # Provide download button
+                        with open(csv_file, "rb") as f:
+                            st.download_button(
+                                label="Download CSV",
+                                data=f,
+                                file_name="extracted_table.csv",
+                                mime="text/csv",
+                                key=f"{i}"
+                            )
+                else:
+                    st.warning("The PDF is complicated. Use the premium version.")
             else:
                 st.warning("The PDF is complicated. Use the premium version.")
         else:

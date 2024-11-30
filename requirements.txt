@@ -9,3 +9,6 @@ transformers
 gmft
 pypdfium2
 streamlit_pdf_viewer
+yfinance
+pandas-datareader
+prophet

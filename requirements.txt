@@ -1,5 +1,5 @@
 streamlit
-openai==1.44.1
+openai==1.55.3
 pandas
 pdfplumber
 torch --index-url https://download.pytorch.org/whl/cu118
@@ -9,6 +9,3 @@ transformers
 gmft
 pypdfium2
 streamlit_pdf_viewer
-yfinance
-pandas-datareader
-prophet
